@@ -24,6 +24,26 @@ from .rate_limiter import setup_rate_limiting
 
 settings = get_settings()
 
+SENSITIVE_QUERY_PARAM_NAMES = {"token", "signature", "secret", "password"}
+REDACTED_VALUE = "****REDACTED****"
+
+
+def redact_query_params(query_params) -> dict[str, str | list[str]]:
+    """Return query params with sensitive values masked for structured logs."""
+    redacted: dict[str, str | list[str]] = {}
+    for key, value in query_params.multi_items():
+        safe_value = REDACTED_VALUE if key.lower() in SENSITIVE_QUERY_PARAM_NAMES else value
+        if key in redacted:
+            existing = redacted[key]
+            if isinstance(existing, list):
+                existing.append(safe_value)
+            else:
+                redacted[key] = [existing, safe_value]
+        else:
+            redacted[key] = safe_value
+    return redacted
+
+
 tags_metadata = [
     {
         "name": "authentication",
@@ -101,7 +121,7 @@ async def log_requests(request: Request, call_next):
         "request_id": request_id,
         "method": request.method,
         "path": request.url.path,
-        "query_params": str(request.query_params)
+        "query_params": redact_query_params(request.query_params)
     })
     
     try:
