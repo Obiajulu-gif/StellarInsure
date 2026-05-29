@@ -249,10 +249,16 @@ export function SiteHeader() {
         ref={drawerRef}
         id="mobile-nav-drawer"
         className={`mobile-drawer ${drawerOpen ? 'is-open' : ''}`}
+        role={drawerOpen ? 'dialog' : undefined}
+        aria-modal={drawerOpen ? true : undefined}
+        aria-labelledby={drawerOpen ? 'mobile-nav-drawer-title' : undefined}
         aria-hidden={!drawerOpen}
         onKeyDown={handleDrawerKeyDown}
-        tabIndex={-1}
+        tabIndex={drawerOpen ? -1 : undefined}
       >
+        <h2 id="mobile-nav-drawer-title" className="sr-only">
+          Mobile navigation menu
+        </h2>
         <nav
           className="mobile-drawer__links"
           aria-label="Mobile section navigation"
