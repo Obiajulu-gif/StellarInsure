@@ -2,10 +2,12 @@ import os
 import logging
 from typing import List, Optional
 from pydantic_settings import BaseSettings
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from functools import lru_cache
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_WEBHOOK_SECRET_KEY = "webhook-secret-key-change-in-production"
 
 # Sensitive field names that should never be logged
 _SENSITIVE_FIELDS = frozenset({
@@ -58,7 +60,7 @@ class Settings(BaseSettings):
     rate_limit_auth_bypass: bool = False
 
     # Webhook settings
-    webhook_secret_key: str = "webhook-secret-key-change-in-production"
+    webhook_secret_key: str = DEFAULT_WEBHOOK_SECRET_KEY
     webhook_max_retries: int = 3
     webhook_delivery_timeout: int = 30
 
@@ -86,6 +88,17 @@ class Settings(BaseSettings):
         if v not in allowed:
             raise ValueError(f"log_level must be one of {allowed}")
         return v
+
+    @model_validator(mode="after")
+    def validate_production_secrets(self):
+        if (
+            self.environment == "production"
+            and self.webhook_secret_key == DEFAULT_WEBHOOK_SECRET_KEY
+        ):
+            raise ValueError(
+                "webhook_secret_key must be configured for production"
+            )
+        return self
 
     @property
     def allowed_origins(self) -> List[str]:
